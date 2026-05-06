@@ -1,0 +1,27 @@
+PASTA DOS HOLERITES
+
+Crie uma pasta por mes no formato AAAA-MM.
+
+Exemplo:
+Holerites\2026-05
+
+Dentro da pasta do mes, coloque os holerites em PDF.
+
+Voce pode trabalhar de duas formas:
+
+1. Por arquivo informado na planilha
+   Planilha\colaboradores.csv:
+
+   nome,numero,arquivo
+   Maria Silva,5534999999999,Maria Silva.pdf
+
+2. Por busca automatica
+   Deixe a coluna arquivo vazia. O sistema tenta encontrar um PDF com o nome
+   do colaborador ou com o numero no nome do arquivo.
+
+   Exemplos aceitos:
+   Maria Silva.pdf
+   maria-silva.pdf
+   5534999999999.pdf
+
+Use sempre numero com DDI + DDD + telefone.

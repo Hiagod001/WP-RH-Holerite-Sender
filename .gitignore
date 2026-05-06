@@ -1,0 +1,7 @@
+node_modules/
+auth_info/
+Planilha/relatorios-holerites/
+Holerites/**/*.pdf
+server.out.log
+server.err.log
+.deploy_keys/

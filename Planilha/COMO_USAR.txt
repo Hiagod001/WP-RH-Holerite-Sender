@@ -1,0 +1,30 @@
+PAINEL DO RH
+
+O cadastro de colaboradores deve ser gerenciado pela pagina web:
+
+http://localhost:3000
+
+Arquivo usado internamente:
+
+Planilha\colaboradores.csv
+
+O RH nao precisa editar esse CSV manualmente.
+
+Fluxo mensal:
+
+1. Abrir o painel.
+2. Selecionar o mes.
+3. Cadastrar ou editar os colaboradores.
+4. Clicar em PDF na linha do colaborador e escolher o holerite.
+5. Clicar em Conferir.
+6. Conectar o WhatsApp pelo QR Code.
+7. Ajustar o delay, se necessario.
+8. Clicar em Enviar holerites.
+
+Os PDFs ficam em:
+
+Holerites\AAAA-MM
+
+Os relatorios ficam em:
+
+Planilha\relatorios-holerites

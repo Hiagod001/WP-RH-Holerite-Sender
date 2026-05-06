@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RH Uai Telecom - Holerites</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="min-h-screen bg-zinc-100 text-zinc-900">
+    <main class="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 md:p-6">
+        <header class="flex flex-col gap-3 border-b border-zinc-200 pb-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Uai Telecom</p>
+                <h1 class="text-2xl font-bold text-zinc-950">RH - Envio de holerites</h1>
+            </div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div id="status-message" class="w-fit rounded px-3 py-2 text-sm font-semibold bg-white text-zinc-700">
+                    Iniciando verificacao...
+                </div>
+                <button onclick="resetConnection()" id="reset-button" class="hidden h-10 rounded bg-red-600 px-3 text-sm font-bold text-white hover:bg-red-700">
+                    Novo QR
+                </button>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+            <aside class="flex flex-col gap-4">
+                <div class="rounded-lg border border-zinc-200 bg-white p-4">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h2 class="text-sm font-bold text-zinc-950">WhatsApp</h2>
+                        <p id="status-detail" class="text-xs font-semibold text-zinc-500"></p>
+                    </div>
+                    <div id="qrcode-wrapper" class="flex min-h-[280px] w-full flex-col items-center justify-center rounded border border-dashed border-zinc-300 bg-zinc-50">
+                        <div id="qrcode" class="flex min-h-[256px] items-center justify-center"></div>
+                        <p id="qr-updated-at" class="mt-3 hidden text-xs text-zinc-500"></p>
+                    </div>
+                    <p id="session-status" class="mt-2 text-sm font-semibold"></p>
+                </div>
+
+                <div class="rounded-lg border border-zinc-200 bg-white p-4">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h2 class="text-sm font-bold text-zinc-950">Colaborador</h2>
+                        <button onclick="clearEmployeeForm()" class="h-9 rounded border border-zinc-300 px-3 text-xs font-bold text-zinc-800 hover:bg-zinc-50">
+                            Limpar
+                        </button>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        <label class="flex flex-col gap-1 text-xs font-semibold text-zinc-600">
+                            Nome
+                            <input id="employee-name" type="text" class="h-10 rounded border border-zinc-300 px-3 text-sm font-normal text-zinc-950 outline-none focus:border-emerald-500">
+                        </label>
+                        <label class="flex flex-col gap-1 text-xs font-semibold text-zinc-600">
+                            WhatsApp
+                            <input id="employee-phone" type="text" placeholder="5534999999999" class="h-10 rounded border border-zinc-300 px-3 text-sm font-normal text-zinc-950 outline-none focus:border-emerald-500">
+                        </label>
+                        <button onclick="saveEmployee()" id="employee-save-button" class="h-10 rounded bg-emerald-700 px-3 text-sm font-bold text-white hover:bg-emerald-800">
+                            Salvar colaborador
+                        </button>
+                        <p id="employee-status" class="text-sm font-semibold"></p>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-zinc-200 bg-white p-4">
+                    <h2 class="mb-3 text-sm font-bold text-zinc-950">Envio do mes</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="col-span-2 flex flex-col gap-1 text-xs font-semibold text-zinc-600">
+                            Mes
+                            <input id="payslip-month" type="month" class="h-10 rounded border border-zinc-300 px-3 text-sm font-normal text-zinc-950 outline-none focus:border-emerald-500">
+                        </label>
+                        <label class="flex flex-col gap-1 text-xs font-semibold text-zinc-600">
+                            Delay min
+                            <input id="delay-min" type="number" min="5" value="45" class="h-10 rounded border border-zinc-300 px-3 text-sm font-normal text-zinc-950 outline-none focus:border-emerald-500">
+                        </label>
+                        <label class="flex flex-col gap-1 text-xs font-semibold text-zinc-600">
+                            Delay max
+                            <input id="delay-max" type="number" min="5" value="90" class="h-10 rounded border border-zinc-300 px-3 text-sm font-normal text-zinc-950 outline-none focus:border-emerald-500">
+                        </label>
+                    </div>
+                    <label class="mt-3 flex flex-col gap-1 text-xs font-semibold text-zinc-600">
+                        Mensagem
+                        <textarea id="payslip-message" class="min-h-[120px] resize-y rounded border border-zinc-300 p-3 text-sm font-normal text-zinc-950 outline-none focus:border-emerald-500"></textarea>
+                    </label>
+                    <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button onclick="loadPayslipPreview()" class="h-10 rounded border border-zinc-300 px-3 text-sm font-bold text-zinc-800 hover:bg-zinc-50">
+                            Conferir
+                        </button>
+                        <button onclick="sendPayslips()" id="send-payslips-button" class="h-10 rounded bg-emerald-700 px-3 text-sm font-bold text-white hover:bg-emerald-800">
+                            Enviar holerites
+                        </button>
+                    </div>
+                    <p id="payslip-status" class="mt-2 text-sm font-semibold"></p>
+                </div>
+            </aside>
+
+            <section class="rounded-lg border border-zinc-200 bg-white">
+                <div class="grid grid-cols-3 border-b border-zinc-200 text-center text-sm">
+                    <div class="p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Colaboradores</p>
+                        <p id="payslip-total" class="text-xl font-bold">0</p>
+                    </div>
+                    <div class="border-x border-zinc-200 p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Prontos</p>
+                        <p id="payslip-ready" class="text-xl font-bold text-emerald-700">0</p>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Pendentes</p>
+                        <p id="payslip-missing" class="text-xl font-bold text-red-700">0</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3 border-b border-zinc-200 p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-zinc-950">Colaboradores e holerites</h2>
+                        <p id="payslip-paths" class="mt-1 text-xs text-zinc-500"></p>
+                    </div>
+                    <input id="employee-search" type="search" placeholder="Buscar colaborador" class="h-10 w-full rounded border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 lg:max-w-xs">
+                </div>
+
+                <input id="payslip-file-input" type="file" accept="application/pdf" class="hidden">
+
+                <div class="max-h-[660px] overflow-auto">
+                    <table class="w-full min-w-[820px] text-left text-sm">
+                        <thead class="sticky top-0 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                            <tr>
+                                <th class="px-4 py-3">Colaborador</th>
+                                <th class="px-4 py-3">WhatsApp</th>
+                                <th class="px-4 py-3">PDF</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3 text-right">Acoes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payslip-preview-body" class="divide-y divide-zinc-100">
+                            <tr>
+                                <td colspan="5" class="px-4 py-6 text-center text-zinc-500">Carregando colaboradores.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const statusMessage = document.getElementById('status-message');
+        const statusDetail = document.getElementById('status-detail');
+        const qrCodeContainer = document.getElementById('qrcode');
+        const qrCodeWrapper = document.getElementById('qrcode-wrapper');
+        const qrUpdatedAt = document.getElementById('qr-updated-at');
+        const sessionStatus = document.getElementById('session-status');
+        const resetButton = document.getElementById('reset-button');
+        const payslipMonth = document.getElementById('payslip-month');
+        const payslipStatus = document.getElementById('payslip-status');
+        const payslipPreviewBody = document.getElementById('payslip-preview-body');
+        const payslipMessage = document.getElementById('payslip-message');
+        const sendPayslipsButton = document.getElementById('send-payslips-button');
+        const employeeName = document.getElementById('employee-name');
+        const employeePhone = document.getElementById('employee-phone');
+        const employeeStatus = document.getElementById('employee-status');
+        const employeeSaveButton = document.getElementById('employee-save-button');
+        const employeeSearch = document.getElementById('employee-search');
+        const fileInput = document.getElementById('payslip-file-input');
+
+        const qrCode = new QRCode(qrCodeContainer, {
+            width: 256,
+            height: 256,
+            colorDark: '#18181b',
+            colorLight: '#ffffff'
+        });
+
+        let lastQrString = '';
+        let lastUpdatedAt = '';
+        let isCheckingStatus = false;
+        let isConnected = false;
+        let editingEmployeeId = '';
+        let uploadEmployeeId = '';
+        let previewRows = [];
+
+        function getCurrentMonthValue() {
+            const now = new Date();
+            return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function setTextStatus(element, message, type) {
+            element.textContent = message;
+            element.className = 'text-sm font-semibold';
+            element.classList.add(type === 'error' ? 'text-red-700' : type === 'success' ? 'text-emerald-700' : 'text-zinc-600');
+        }
+
+        function setStatusStyles(type) {
+            statusMessage.className = 'w-fit rounded px-3 py-2 text-sm font-semibold';
+
+            if (type === 'connected') {
+                statusMessage.classList.add('text-emerald-800', 'bg-emerald-100');
+                return;
+            }
+
+            if (type === 'warning') {
+                statusMessage.classList.add('text-yellow-800', 'bg-yellow-100');
+                return;
+            }
+
+            if (type === 'error') {
+                statusMessage.classList.add('text-red-800', 'bg-red-100');
+                return;
+            }
+
+            statusMessage.classList.add('text-zinc-700', 'bg-white');
+        }
+
+        function renderQrCode(qrString, updatedAt) {
+            qrCodeWrapper.style.display = 'flex';
+            qrUpdatedAt.classList.remove('hidden');
+
+            if (qrString !== lastQrString || updatedAt !== lastUpdatedAt) {
+                qrCode.clear();
+                qrCode.makeCode(qrString);
+                lastQrString = qrString;
+                lastUpdatedAt = updatedAt || '';
+            }
+
+            qrUpdatedAt.textContent = updatedAt
+                ? 'Atualizado: ' + new Date(updatedAt).toLocaleTimeString('pt-BR')
+                : '';
+        }
+
+        function clearQrCode() {
+            qrCode.clear();
+            qrCodeContainer.innerHTML = '';
+            lastQrString = '';
+            lastUpdatedAt = '';
+            qrUpdatedAt.textContent = '';
+            qrUpdatedAt.classList.add('hidden');
+        }
+
+        async function checkStatus() {
+            if (isCheckingStatus) {
+                return;
+            }
+
+            isCheckingStatus = true;
+
+            try {
+                const response = await fetch('/api/whatsapp-status?t=' + Date.now(), {
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                const data = await response.json();
+                statusDetail.textContent = data.message || '';
+
+                if (data.status === 'connected') {
+                    isConnected = true;
+                    setStatusStyles('connected');
+                    statusMessage.textContent = 'WhatsApp conectado';
+                    clearQrCode();
+                    qrCodeWrapper.style.display = 'none';
+                    resetButton.classList.remove('hidden');
+                    sendPayslipsButton.disabled = false;
+                    sendPayslipsButton.classList.remove('opacity-60');
+                    return;
+                }
+
+                isConnected = false;
+                sendPayslipsButton.disabled = true;
+                sendPayslipsButton.classList.add('opacity-60');
+                resetButton.classList.add('hidden');
+                qrCodeWrapper.style.display = 'flex';
+
+                if (data.status === 'waiting_qr' && data.qr_string) {
+                    setStatusStyles('warning');
+                    statusMessage.textContent = 'Leia o QR code';
+                    renderQrCode(data.qr_string, data.updated_at);
+                    return;
+                }
+
+                if (data.status === 'logged_out' || data.status === 'error') {
+                    setStatusStyles('error');
+                    statusMessage.textContent = 'Conexao indisponivel';
+                    clearQrCode();
+                    return;
+                }
+
+                setStatusStyles('default');
+                statusMessage.textContent = 'Preparando conexao';
+                clearQrCode();
+            } catch (error) {
+                isConnected = false;
+                setStatusStyles('error');
+                statusMessage.textContent = 'Falha ao consultar conexao';
+                statusDetail.textContent = 'Tentando novamente automaticamente...';
+            } finally {
+                isCheckingStatus = false;
+            }
+        }
+
+        function clearEmployeeForm() {
+            editingEmployeeId = '';
+            employeeName.value = '';
+            employeePhone.value = '';
+            employeeSaveButton.textContent = 'Salvar colaborador';
+            employeeStatus.textContent = '';
+        }
+
+        async function saveEmployee() {
+            const payload = {
+                name: employeeName.value.trim(),
+                phone: employeePhone.value.replace(/\D/g, '')
+            };
+
+            if (!payload.name || !payload.phone) {
+                setTextStatus(employeeStatus, 'Preencha nome e WhatsApp.', 'error');
+                return;
+            }
+
+            setTextStatus(employeeStatus, 'Salvando...', 'default');
+
+            try {
+                const response = await fetch(editingEmployeeId ? '/api/hr/employees/' + encodeURIComponent(editingEmployeeId) : '/api/hr/employees', {
+                    method: editingEmployeeId ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json().catch(() => ({
+                    status: 'error',
+                    message: 'Resposta invalida do servidor'
+                }));
+
+                if (response.ok && data.status === 'success') {
+                    setTextStatus(employeeStatus, 'Colaborador salvo.', 'success');
+                    clearEmployeeForm();
+                    await loadPayslipPreview();
+                    return;
+                }
+
+                setTextStatus(employeeStatus, data.message || 'Erro ao salvar.', 'error');
+            } catch (error) {
+                setTextStatus(employeeStatus, 'Erro ao salvar colaborador.', 'error');
+            }
+        }
+
+        function editEmployee(id) {
+            const employee = previewRows.find((item) => item.id === id);
+
+            if (!employee) {
+                return;
+            }
+
+            editingEmployeeId = id;
+            employeeName.value = employee.name || '';
+            employeePhone.value = employee.phone || '';
+            employeeSaveButton.textContent = 'Atualizar colaborador';
+            setTextStatus(employeeStatus, 'Editando ' + (employee.name || 'colaborador') + '.', 'default');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function deleteEmployee(id) {
+            const employee = previewRows.find((item) => item.id === id);
+            const name = employee?.name || 'este colaborador';
+
+            if (!confirm('Remover ' + name + '?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/hr/employees/' + encodeURIComponent(id), {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json().catch(() => ({
+                    status: 'error',
+                    message: 'Resposta invalida do servidor'
+                }));
+
+                if (response.ok && data.status === 'success') {
+                    await loadPayslipPreview();
+                    return;
+                }
+
+                setTextStatus(payslipStatus, data.message || 'Erro ao remover.', 'error');
+            } catch (error) {
+                setTextStatus(payslipStatus, 'Erro ao remover colaborador.', 'error');
+            }
+        }
+
+        function choosePayslipFile(id) {
+            uploadEmployeeId = id;
+            fileInput.value = '';
+            fileInput.click();
+        }
+
+        async function uploadSelectedPayslip() {
+            if (!uploadEmployeeId || !fileInput.files.length) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('month', payslipMonth.value || getCurrentMonthValue());
+            formData.append('file', fileInput.files[0]);
+            setTextStatus(payslipStatus, 'Anexando PDF...', 'default');
+
+            try {
+                const response = await fetch('/api/hr/employees/' + encodeURIComponent(uploadEmployeeId) + '/payslip', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                const data = await response.json().catch(() => ({
+                    status: 'error',
+                    message: 'Resposta invalida do servidor'
+                }));
+
+                if (response.ok && data.status === 'success') {
+                    setTextStatus(payslipStatus, 'PDF anexado.', 'success');
+                    await loadPayslipPreview();
+                    return;
+                }
+
+                setTextStatus(payslipStatus, data.message || 'Erro ao anexar PDF.', 'error');
+            } catch (error) {
+                setTextStatus(payslipStatus, 'Erro ao anexar PDF.', 'error');
+            }
+        }
+
+        function renderPayslipPreview(data) {
+            document.getElementById('payslip-total').textContent = data.total_employees || 0;
+            document.getElementById('payslip-ready').textContent = data.ready_count || 0;
+            document.getElementById('payslip-missing').textContent = data.missing_count || 0;
+            previewRows = data.results || [];
+
+            const query = employeeSearch.value.trim().toLowerCase();
+            const filteredRows = previewRows.filter((item) => {
+                const haystack = `${item.name || ''} ${item.phone || ''} ${item.payslip_file || ''}`.toLowerCase();
+                return haystack.includes(query);
+            });
+
+            if (!filteredRows.length) {
+                payslipPreviewBody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-zinc-500">Nenhum colaborador encontrado.</td></tr>';
+                return;
+            }
+
+            payslipPreviewBody.innerHTML = filteredRows.map((item) => {
+                const ready = item.phone && item.phone.length >= 12 && item.payslip_file;
+                const statusClass = ready ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50';
+                const statusText = ready ? 'Pronto' : 'Pendente';
+
+                return `
+                    <tr>
+                        <td class="px-4 py-3 font-medium text-zinc-950">${escapeHtml(item.name || '-')}</td>
+                        <td class="px-4 py-3 text-zinc-700">${escapeHtml(item.phone || '-')}</td>
+                        <td class="px-4 py-3 text-zinc-700">${escapeHtml(item.payslip_file || '-')}</td>
+                        <td class="px-4 py-3"><span class="rounded px-2 py-1 text-xs font-bold ${statusClass}">${statusText}</span></td>
+                        <td class="px-4 py-3">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="choosePayslipFile('${escapeHtml(item.id)}')" class="h-9 rounded bg-zinc-800 px-3 text-xs font-bold text-white hover:bg-zinc-950">PDF</button>
+                                <button onclick="editEmployee('${escapeHtml(item.id)}')" class="h-9 rounded border border-zinc-300 px-3 text-xs font-bold text-zinc-800 hover:bg-zinc-50">Editar</button>
+                                <button onclick="deleteEmployee('${escapeHtml(item.id)}')" class="h-9 rounded border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50">Excluir</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadPayslipPreview() {
+            const month = payslipMonth.value || getCurrentMonthValue();
+            payslipMonth.value = month;
+            document.getElementById('payslip-paths').textContent = 'Mes selecionado: ' + month;
+            setTextStatus(payslipStatus, 'Conferindo colaboradores...', 'default');
+
+            try {
+                const response = await fetch('/api/payslips-preview?month=' + encodeURIComponent(month), {
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json().catch(() => ({
+                    status: 'error',
+                    message: 'Resposta invalida do servidor'
+                }));
+
+                if (response.ok && data.status === 'success') {
+                    renderPayslipPreview(data);
+                    const message = data.missing_count
+                        ? `${data.missing_count} pendencia(s) para resolver.`
+                        : 'Tudo pronto para envio.';
+                    setTextStatus(payslipStatus, message, data.missing_count ? 'error' : 'success');
+                    return;
+                }
+
+                setTextStatus(payslipStatus, data.message || 'Erro ao conferir holerites.', 'error');
+            } catch (error) {
+                setTextStatus(payslipStatus, 'Erro ao conferir holerites.', 'error');
+            }
+        }
+
+        async function sendPayslips() {
+            const month = payslipMonth.value || getCurrentMonthValue();
+            const minDelay = Number(document.getElementById('delay-min').value || 45);
+            const maxDelay = Number(document.getElementById('delay-max').value || 90);
+
+            if (!isConnected) {
+                setTextStatus(payslipStatus, 'Conecte o WhatsApp antes de enviar.', 'error');
+                return;
+            }
+
+            if (maxDelay < minDelay) {
+                setTextStatus(payslipStatus, 'O delay maximo precisa ser maior ou igual ao minimo.', 'error');
+                return;
+            }
+
+            sendPayslipsButton.disabled = true;
+            sendPayslipsButton.classList.add('opacity-60');
+            setTextStatus(payslipStatus, 'Enviando holerites. Mantenha esta janela aberta.', 'default');
+
+            try {
+                const response = await fetch('/api/send-payslips', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        month,
+                        min_delay_seconds: minDelay,
+                        max_delay_seconds: maxDelay,
+                        message: payslipMessage.value
+                    })
+                });
+                const data = await response.json().catch(() => ({
+                    status: 'error',
+                    message: 'Resposta invalida do servidor'
+                }));
+
+                if (response.ok && data.status === 'success') {
+                    setTextStatus(payslipStatus, `${data.message} Relatorio: ${data.report_path}`, data.error_count ? 'error' : 'success');
+                    await loadPayslipPreview();
+                    return;
+                }
+
+                setTextStatus(payslipStatus, data.message || 'Erro ao enviar holerites.', 'error');
+            } catch (error) {
+                setTextStatus(payslipStatus, 'Erro ao enviar holerites.', 'error');
+            } finally {
+                sendPayslipsButton.disabled = !isConnected;
+                sendPayslipsButton.classList.toggle('opacity-60', !isConnected);
+            }
+        }
+
+        async function resetConnection() {
+            setTextStatus(sessionStatus, 'Reiniciando sessao...', 'default');
+
+            try {
+                const response = await fetch('/api/reset-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json().catch(() => ({
+                    status: 'error',
+                    message: 'Resposta invalida do servidor'
+                }));
+
+                if (response.ok && data.status === 'success') {
+                    setTextStatus(sessionStatus, data.message, 'success');
+                    return;
+                }
+
+                setTextStatus(sessionStatus, data.message || 'Erro ao reiniciar sessao.', 'error');
+            } catch (error) {
+                setTextStatus(sessionStatus, 'Erro ao reiniciar a conexao.', 'error');
+            }
+        }
+
+        payslipMonth.value = getCurrentMonthValue();
+        payslipMessage.value = [
+            'Ola {nome}, tudo bem?',
+            '',
+            'Segue em anexo o seu holerite referente a {mes}.',
+            '',
+            'Atenciosamente,',
+            'RH Uai Telecom'
+        ].join('\n');
+
+        payslipMonth.addEventListener('change', loadPayslipPreview);
+        employeeSearch.addEventListener('input', () => {
+            renderPayslipPreview({
+                total_employees: previewRows.length,
+                ready_count: previewRows.filter((item) => item.phone && item.phone.length >= 12 && item.payslip_file).length,
+                missing_count: previewRows.filter((item) => !(item.phone && item.phone.length >= 12 && item.payslip_file)).length,
+                results: previewRows
+            });
+        });
+        fileInput.addEventListener('change', uploadSelectedPayslip);
+
+        loadPayslipPreview();
+        checkStatus();
+        setInterval(checkStatus, 1500);
+    </script>
+</body>
+</html>
