@@ -1,12 +1,34 @@
 {
-  "name": "bot-mensagens-whatsapp-node",
+  "name": "wp-rh-holerite-sender",
   "version": "1.0.0",
   "private": true,
-  "description": "Painel do RH para enviar holerites pelo WhatsApp com cadastro web e delay.",
+  "description": "Painel web do RH para envio de holerites pelo WhatsApp com cadastro, upload de PDFs, delay e relatorio.",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "audit": "npm audit"
+  },
+  "keywords": [
+    "whatsapp",
+    "rh",
+    "holerite",
+    "baileys",
+    "nodejs",
+    "express"
+  ],
+  "author": "Hiagod001",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hiagod001/WP-RH-Holerite-Sender.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hiagod001/WP-RH-Holerite-Sender/issues"
+  },
+  "homepage": "https://github.com/Hiagod001/WP-RH-Holerite-Sender#readme",
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc.9",

@@ -1,87 +1,118 @@
-# RH Uai Telecom - Envio de Holerites
+# WP RH Holerite Sender
 
-Sistema em Node.js para o RH cadastrar colaboradores, anexar holerites em PDF e enviar os documentos pelo WhatsApp com delay entre os envios.
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-API-111111?style=for-the-badge&logo=express&logoColor=white)
+![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
-## O que ele faz
+Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar os documentos pelo WhatsApp com conferencia previa, delay configuravel e relatorio de envio.
 
-- conecta o WhatsApp por QR Code
-- gerencia colaboradores pela pagina web
-- permite anexar o PDF do holerite direto na linha do colaborador
-- confere quem esta pronto ou pendente antes do envio
-- envia holerites mensais em PDF para cada colaborador
-- aplica delay aleatorio entre os envios para reduzir risco de bloqueio
-- grava relatorio CSV do envio dos holerites
-- permite desconectar a sessao atual e gerar um novo QR Code
+> Projeto criado para reduzir o envio manual de holerites conversa por conversa, mantendo uma rotina mensal mais rapida, rastreavel e organizada.
 
-## Como rodar
+## Destaques
 
-Com Node.js instalado:
+- Cadastro de colaboradores direto pela interface web.
+- Upload de holerite em PDF por colaborador e por mes.
+- Conferencia visual de colaboradores prontos e pendentes.
+- Envio em lote pelo WhatsApp usando sessao via QR Code.
+- Delay aleatorio configuravel entre envios.
+- Relatorio CSV com sucesso, falha, motivo e identificador da mensagem.
+- Protecao local para nao versionar PDFs, relatorios, `node_modules` ou sessao do WhatsApp.
+
+## Stack
+
+- Node.js
+- Express
+- Baileys
+- Multer
+- HTML + Tailwind CDN
+
+## Como Rodar
+
+Clone o repositorio e instale as dependencias:
 
 ```bash
 npm install
+```
+
+Inicie o servidor:
+
+```bash
 npm start
 ```
 
-Depois abra:
+Acesse o painel:
 
 ```text
 http://localhost:3000
 ```
 
-## Uso no dia a dia
+## Fluxo Do RH
 
-1. Abra o painel.
-2. Cadastre ou edite os colaboradores pela propria pagina.
+1. Abra o painel web.
+2. Cadastre ou edite os colaboradores.
 3. Selecione o mes do holerite.
 4. Clique em `PDF` na linha do colaborador e escolha o arquivo.
-5. Clique em `Conferir` para ver pendencias.
+5. Clique em `Conferir` para validar pendencias.
 6. Leia o QR Code do WhatsApp, se ainda nao estiver conectado.
-7. Ajuste o delay, se quiser.
+7. Ajuste o delay entre envios.
 8. Clique em `Enviar holerites`.
-
-## Dados locais
-
-O painel gerencia estes arquivos automaticamente:
-
-- `Planilha/colaboradores.csv`
-- `Holerites/AAAA-MM/`
-- `Planilha/relatorios-holerites/`
-
-O RH nao precisa editar o CSV manualmente. Ele fica apenas como base local do sistema.
-
-## Delay
-
-O painel vem com delay aleatorio entre 45 e 90 segundos por padrao.
-
-Voce pode aumentar esse intervalo antes de enviar. O delay ajuda a deixar o envio menos agressivo, mas nao existe garantia absoluta contra bloqueio do WhatsApp. Use apenas para comunicacao legitima com colaboradores.
-
-## Relatorio
-
-Ao final do envio, o sistema cria um CSV em:
-
-```text
-Planilha/relatorios-holerites/
-```
-
-Esse arquivo mostra quem recebeu, quem falhou e o motivo.
 
 ## Estrutura
 
 ```text
 .
-|-- Planilha/
-|   |-- COMO_USAR.txt
-|   `-- colaboradores.csv
 |-- Holerites/
 |   |-- COMO_USAR.txt
 |   `-- 2026-05/
+|-- Planilha/
+|   |-- COMO_USAR.txt
+|   `-- colaboradores.csv
 |-- public/
 |   `-- index.html
+|-- server.js
 |-- package.json
-|-- package-lock.json
-`-- server.js
+`-- README.md
 ```
 
-## Observacao
+## Dados Locais
 
-Depois que a sessao for conectada uma vez, ela fica salva localmente para nao precisar ler o QR toda hora. Se quiser forcar uma nova conexao, use o botao `Novo QR` no painel.
+O sistema grava os dados em arquivos locais para manter a operacao simples:
+
+| Caminho | Funcao |
+| --- | --- |
+| `Planilha/colaboradores.csv` | Base local de colaboradores |
+| `Holerites/AAAA-MM/` | PDFs enviados ou pendentes por mes |
+| `Planilha/relatorios-holerites/` | Relatorios CSV gerados apos envio |
+| `auth_info/` | Sessao local do WhatsApp |
+
+Arquivos sensiveis e gerados em runtime ficam protegidos pelo `.gitignore`.
+
+## Delay E Boas Praticas
+
+O delay padrao e de 45 a 90 segundos entre envios. Voce pode aumentar esse intervalo antes de iniciar um lote.
+
+O delay ajuda a reduzir comportamento agressivo de envio, mas nao garante ausencia de bloqueio. Use apenas para comunicacao legitima com colaboradores e evite reenviar o mesmo lote varias vezes.
+
+## Seguranca E Privacidade
+
+- Nao suba holerites reais no repositorio.
+- Nao versione a pasta `auth_info/`.
+- Nao versione relatorios com dados pessoais.
+- Revise os numeros antes de enviar.
+- Use uma conta autorizada pela empresa para operar o WhatsApp.
+
+## Scripts
+
+```bash
+npm start
+npm audit
+```
+
+## Status
+
+Versao inicial aprovada para uso interno do RH, com foco em simplicidade operacional e controle mensal de envio.
+
+## Licenca
+
+Distribuido sob a licenca MIT. Veja `LICENSE` para mais detalhes.
