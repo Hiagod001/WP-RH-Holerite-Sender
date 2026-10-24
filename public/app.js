@@ -10,6 +10,51 @@ const state = {
 const defaultMessage = 'Olá {nome}, tudo bem?\n\nSegue em anexo o seu holerite referente a {mes}.\n\nAtenciosamente,\nRH Uai Telecom';
 const titles = { payslips: 'Holerites', employees: 'Cadastros', settings: 'Configurações' };
 let toastTimer;
+let viewAnimations = [];
+let initialView = true;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function animateView() {
+  viewAnimations.forEach((animation) => animation.cancel());
+  viewAnimations = [];
+  if (reducedMotion.matches) return;
+  const targets = state.view === 'settings'
+    ? ['.page-heading', ...document.querySelectorAll('.settings-section')]
+    : ['.page-heading', ...document.querySelectorAll('#metrics:not([hidden]) .metric'), '.records-heading', '.table-toolbar', '#table-scroll', '#send-bar:not([hidden])'];
+  targets.forEach((target, index) => {
+    const element = typeof target === 'string' ? document.querySelector(target) : target;
+    if (!element) return;
+    viewAnimations.push(element.animate([
+      { opacity: 0, transform: 'translateY(22px)' },
+      { opacity: 1, transform: 'translateY(0)' }
+    ], { duration: 520, delay: Math.min(index * 55, 330), easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+  });
+}
+
+function openDialog(id) {
+  const dialog = $(id);
+  dialog.showModal();
+  if (!reducedMotion.matches) dialog.animate([
+    { opacity: 0, transform: 'translateY(24px) scale(.95)' },
+    { opacity: 1, transform: 'translateY(0) scale(1)' }
+  ], { duration: 340, easing: 'cubic-bezier(.16,1,.3,1)' });
+}
+
+async function closeDialog(id) {
+  const dialog = $(id);
+  if (!dialog.open || dialog.dataset.closing) return;
+  dialog.dataset.closing = 'true';
+  try {
+    if (!reducedMotion.matches) await dialog.animate([
+      { opacity: 1, transform: 'translateY(0) scale(1)' },
+      { opacity: 0, transform: 'translateY(12px) scale(.98)' }
+    ], { duration: 160, easing: 'ease-in', fill: 'forwards' }).finished;
+    dialog.close();
+  } finally {
+    dialog.getAnimations().forEach((animation) => animation.cancel());
+    delete dialog.dataset.closing;
+  }
+}
 
 function icons() { window.lucide?.createIcons(); }
 function icon(name) {
@@ -87,6 +132,8 @@ function syncControls() {
   document.querySelectorAll('dialog [data-close]').forEach((button) => { button.disabled = state.mutation; });
 }
 function changeView(view) {
+  if (!Object.hasOwn(titles, view)) view = 'payslips';
+  const changed = state.view !== view || initialView;
   state.view = view;
   document.body.dataset.view = view;
   $('page-title').textContent = titles[view];
@@ -109,6 +156,13 @@ function changeView(view) {
     else button.removeAttribute('aria-current');
   });
   renderRows();
+  if (changed) animateView();
+  initialView = false;
+}
+
+function navigate(view) {
+  if (window.location.hash !== `#${view}`) window.location.hash = view;
+  else changeView(view);
 }
 function rowAction(employee, action, glyph, label) {
   const button = document.createElement('button');
@@ -230,7 +284,7 @@ function openEmployee(employee) {
   $('employee-name').value = employee?.name || '';
   $('employee-phone').value = employee?.phone || '';
   notice('employee-feedback');
-  $('employee-dialog').showModal();
+  openDialog('employee-dialog');
   $('employee-name').focus();
 }
 async function saveEmployee(event) {
@@ -247,7 +301,7 @@ async function saveEmployee(event) {
   notice('employee-feedback');
   try {
     await api(state.editingId ? `/api/hr/employees/${encodeURIComponent(state.editingId)}` : '/api/hr/employees', jsonRequest(state.editingId ? 'PUT' : 'POST', { name, phone }));
-    $('employee-dialog').close();
+    await closeDialog('employee-dialog');
     toast(state.editingId ? 'Cadastro atualizado.' : 'Colaborador cadastrado.');
     await loadPreview();
   } catch (error) { notice('employee-feedback', error.message); }
@@ -260,7 +314,7 @@ function openUpload(employee) {
   $('upload-month').textContent = monthLabel(state.upload.month);
   $('file-name').textContent = 'Nenhum arquivo selecionado';
   notice('upload-feedback');
-  $('upload-dialog').showModal();
+  openDialog('upload-dialog');
 }
 async function uploadPdf(event) {
   event.preventDefault();
@@ -277,7 +331,7 @@ async function uploadPdf(event) {
   notice('upload-feedback', 'Anexando PDF…', 'info');
   try {
     await api(`/api/hr/employees/${encodeURIComponent(context.id)}/payslip`, { method: 'POST', body: form });
-    $('upload-dialog').close();
+    await closeDialog('upload-dialog');
     toast('Holerite anexado.');
     await loadPreview();
   } catch (error) { notice('upload-feedback', error.message); }
@@ -287,7 +341,7 @@ function openDelete(employee) {
   state.deleting = employee.id;
   $('delete-description').textContent = `Excluir o cadastro de ${employee.name}? Ele deixará de aparecer na lista de colaboradores.`;
   notice('delete-feedback');
-  $('delete-dialog').showModal();
+  openDialog('delete-dialog');
 }
 async function deleteEmployee() {
   if (state.mutation || busy() || !state.deleting) return;
@@ -295,7 +349,7 @@ async function deleteEmployee() {
   syncControls();
   try {
     await api(`/api/hr/employees/${encodeURIComponent(state.deleting)}`, { method: 'DELETE' });
-    $('delete-dialog').close();
+    await closeDialog('delete-dialog');
     toast('Cadastro excluído.');
     await loadPreview();
   } catch (error) { notice('delete-feedback', error.message); }
@@ -328,7 +382,7 @@ function savePreferences(event) {
 async function reviewSend() {
   if (busy() || state.mutation) return;
   if (!validPreferences(readPreferences())) {
-    changeView('settings');
+    navigate('settings');
     notice('settings-feedback', 'Confira os intervalos e a mensagem antes de enviar.');
     return;
   }
@@ -339,14 +393,14 @@ async function reviewSend() {
   $('review-pending').textContent = state.rows.filter((employee) => !isReady(employee)).length;
   $('review-delay').textContent = `${prefs.min} a ${prefs.max} segundos`;
   notice('review-feedback');
-  $('send-dialog').showModal();
+  openDialog('send-dialog');
 }
 async function sendPayslips() {
   if (busy() || state.mutation || !state.connected || !state.validList || !state.rows.some(isReady)) return;
   const prefs = readPreferences();
   if (!validPreferences(prefs)) return;
   state.sending = true;
-  $('send-dialog').close();
+  await closeDialog('send-dialog');
   notice('send-feedback', 'Enviando holerites. Aguarde a conclusão para iniciar outro envio.', 'info');
   renderRows();
   try {
@@ -418,9 +472,12 @@ async function resetConnection() {
 
 $('payslip-month').value = monthValue();
 restorePreferences();
-document.querySelectorAll('nav [data-view]').forEach((button) => button.addEventListener('click', () => changeView(button.dataset.view)));
-document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => { if (!state.mutation) $(button.dataset.close).close(); }));
-document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('cancel', (event) => { if (state.mutation) event.preventDefault(); }));
+document.querySelectorAll('nav [data-view]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.view)));
+document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => { if (!state.mutation) closeDialog(button.dataset.close); }));
+document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('cancel', (event) => {
+  event.preventDefault();
+  if (!state.mutation) closeDialog(dialog.id);
+}));
 document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => {
   state.filter = button.dataset.filter;
   document.querySelectorAll('[data-filter]').forEach((item) => {
@@ -439,12 +496,13 @@ $('employee-search').addEventListener('input', renderRows);
 $('refresh').addEventListener('click', loadPreview);
 $('payslip-month').addEventListener('change', () => { notice('send-feedback'); loadPreview(); });
 $('settings-form').addEventListener('submit', savePreferences);
-$('edit-settings').addEventListener('click', () => changeView('settings'));
-$('connection-shortcut').addEventListener('click', () => changeView('settings'));
+$('edit-settings').addEventListener('click', () => navigate('settings'));
+$('connection-shortcut').addEventListener('click', () => navigate('settings'));
 $('reset-connection').addEventListener('click', resetConnection);
 $('send-payslips').addEventListener('click', reviewSend);
 $('confirm-send').addEventListener('click', sendPayslips);
-changeView('payslips');
+window.addEventListener('hashchange', () => changeView(window.location.hash.slice(1)));
+changeView(window.location.hash.slice(1) || 'payslips');
 loadPreview();
 checkConnection();
 setInterval(() => { if (!document.hidden) checkConnection(); }, 2500);

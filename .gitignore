@@ -5,3 +5,6 @@ Holerites/**/*.pdf
 server.out.log
 server.err.log
 .deploy_keys/
+.backups/
+.rh-update.lock
+WP-RH-Holerite-Sender-*.zip

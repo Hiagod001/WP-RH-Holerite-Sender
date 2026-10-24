@@ -16,6 +16,7 @@ Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar d
 - Cadastro e manutenção de colaboradores pela interface web.
 - Ordem alfabética automática em português após cadastrar ou editar nomes.
 - Navegação por Holerites, Cadastros e Configurações, adaptada para celular.
+- Entrada animada do painel, transições entre telas e janelas com abertura suave.
 - Upload de holerite em PDF por colaborador e por mês.
 - Conferência visual de pendências antes do disparo.
 - Envio em lote via WhatsApp com sessão autenticada por QR Code.
@@ -50,6 +51,16 @@ Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar d
 | CSV local | Base simples de colaboradores e relatórios |
 
 ## Como Rodar
+
+### Atualizar o computador do RH
+
+Para preservar o cadastro existente, envie o pacote `WP-RH-Holerite-Sender-ATUALIZACAO.zip`. Feche o sistema, extraia o pacote em uma pasta separada e execute `ATUALIZAR.bat`, informando a pasta da instalação atual.
+
+O atualizador troca somente o código, faz backup automático e mantém colaboradores, documentos, relatórios e sessão do WhatsApp. Instruções completas: [ATUALIZACAO.md](ATUALIZACAO.md).
+
+Gere o pacote no Windows com `npm run update:pack`. Ele não inclui o arquivo de colaboradores ou qualquer documento do RH.
+
+### Nova instalação
 
 ```bash
 npm install
