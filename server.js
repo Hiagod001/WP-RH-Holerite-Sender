@@ -5,6 +5,7 @@ import path from 'path';
 import pino from 'pino';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
+import { sortEmployees } from './public/employee-order.js';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
@@ -187,7 +188,7 @@ async function readEmployeeEntries() {
     throw new Error('A planilha Planilha/colaboradores.csv precisa ter uma coluna numero, telefone, celular ou whatsapp');
   }
 
-  return lines.slice(1).map((line, index) => {
+  const employees = lines.slice(1).map((line, index) => {
     const row = parseCsvLine(line, delimiter);
     const id = idIndex >= 0 ? String(row[idIndex] || '').trim() : `legacy-${index + 2}`;
     const name = nameIndex >= 0 ? String(row[nameIndex] || '').trim() : '';
@@ -202,13 +203,14 @@ async function readEmployeeEntries() {
       file
     };
   }).filter((entry) => entry.phone || entry.name || entry.file);
+  return sortEmployees(employees);
 }
 
 async function writeEmployeeEntries(employees) {
   await fs.mkdir(path.dirname(employeesFilePath), { recursive: true });
 
   const header = ['id', 'nome', 'numero', 'arquivo'];
-  const rows = employees.map((employee) => [
+  const rows = sortEmployees(employees).map((employee) => [
     employee.id,
     employee.name,
     employee.phone,
@@ -523,7 +525,8 @@ app.get('/api/whatsapp-status', (req, res) => {
     status: state.status,
     qr_string: state.qrString,
     updated_at: state.updatedAt,
-    message: state.message
+    message: state.message,
+    sending: payslipBatchInProgress
   });
 });
 
@@ -716,6 +719,7 @@ app.get('/api/payslips-preview', async (req, res) => {
 });
 
 app.post('/api/send-payslips', async (req, res) => {
+  let acquired = false;
   try {
     if (!sock || state.status !== 'connected') {
       return res.status(503).json({
@@ -731,6 +735,9 @@ app.post('/api/send-payslips', async (req, res) => {
       });
     }
 
+    payslipBatchInProgress = true;
+    acquired = true;
+
     const month = validateMonth(req.body.month);
 
     const { minMs, maxMs, minSeconds, maxSeconds } = normalizeDelayConfig(req.body);
@@ -744,7 +751,6 @@ app.post('/api/send-payslips', async (req, res) => {
       });
     }
 
-    payslipBatchInProgress = true;
     const results = [];
 
     for (const item of plan) {
@@ -807,8 +813,6 @@ app.post('/api/send-payslips', async (req, res) => {
     const successCount = results.filter((item) => item.status === 'success').length;
     const errorCount = results.length - successCount;
 
-    payslipBatchInProgress = false;
-
     return res.json({
       status: 'success',
       message: `Envio de holerites finalizado. Sucessos: ${successCount}. Falhas: ${errorCount}.`,
@@ -824,16 +828,20 @@ app.post('/api/send-payslips', async (req, res) => {
       results
     });
   } catch (error) {
-    payslipBatchInProgress = false;
     return res.status(500).json({
       status: 'error',
       message: `Erro no envio de holerites: ${error.message}`
     });
+  } finally {
+    if (acquired) payslipBatchInProgress = false;
   }
 });
 
 app.post('/api/reset-connection', async (req, res) => {
   try {
+    if (payslipBatchInProgress) {
+      return res.status(409).json({ status: 'error', message: 'Aguarde o envio de holerites terminar.' });
+    }
     await resetWhatsAppSession();
 
     return res.json({

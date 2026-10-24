@@ -2,6 +2,18 @@
 
 Todas as mudancas relevantes deste projeto serao documentadas aqui.
 
+## 2026-10-24
+
+- Interface redesenhada com navegacao por Holerites, Cadastros e Configuracoes.
+- Cadastros em ordem alfabetica em portugues no servidor e na pagina.
+- Busca sem distincao de acentos e filtros de pendencias.
+- Formularios de cadastro, PDF e exclusao em janelas acessiveis.
+- Lista adaptada para celular, com acoes visiveis sem rolagem horizontal.
+- Bloqueio de envio duplicado durante atualizacoes de conexao.
+- Preferencias de mensagem e intervalo salvas no navegador.
+- Estilos, icones e geracao de QR Code servidos localmente.
+- Testes de ordenacao e de criacao/edicao de cadastro pela API.
+
 ## 1.0.0 - 2026-05-06
 
 - Painel exclusivo do RH.

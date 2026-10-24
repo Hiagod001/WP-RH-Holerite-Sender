@@ -11,7 +11,11 @@ Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar d
 
 ## Destaques
 
+![Painel do RH com dados fictícios](docs/images/painel-rh.png)
+
 - Cadastro e manutenção de colaboradores pela interface web.
+- Ordem alfabética automática em português após cadastrar ou editar nomes.
+- Navegação por Holerites, Cadastros e Configurações, adaptada para celular.
 - Upload de holerite em PDF por colaborador e por mês.
 - Conferência visual de pendências antes do disparo.
 - Envio em lote via WhatsApp com sessão autenticada por QR Code.
@@ -24,13 +28,13 @@ Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar d
 <summary><strong>Fluxo de uso</strong></summary>
 
 1. Inicie o painel.
-2. Leia o QR Code do WhatsApp.
-3. Cadastre ou atualize os colaboradores.
-4. Escolha o mês de referência.
-5. Anexe o PDF correto para cada colaborador.
-6. Confira a lista de prontos e pendentes.
-7. Ajuste mensagem e intervalo de envio.
-8. Clique em `Enviar holerites`.
+2. Em `Configurações`, conecte o WhatsApp e ajuste mensagem e intervalo de envio.
+3. Em `Cadastros`, use `Novo colaborador` ou o ícone de editar.
+4. Em `Holerites`, escolha a competência.
+5. Use o ícone de upload na linha do colaborador e anexe o PDF.
+6. Confira os filtros `Prontos` e `Pendentes` ou busque pelo nome e WhatsApp.
+7. Clique em `Revisar envio`.
+8. Confira os dados e confirme o envio.
 9. Consulte o relatório gerado ao final.
 
 </details>
@@ -50,6 +54,12 @@ Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar d
 ```bash
 npm install
 npm start
+```
+
+Para validar a ordenação e o cadastro pela API com dados isolados:
+
+```bash
+npm test
 ```
 
 Depois acesse:
