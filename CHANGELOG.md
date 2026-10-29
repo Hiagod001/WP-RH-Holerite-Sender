@@ -2,6 +2,15 @@
 
 Todas as mudancas relevantes deste projeto serao documentadas aqui.
 
+## 2026-10-29
+
+- Competencia obrigatoria no anexo e no envio; a data de pagamento nao define o mes do holerite.
+- PDFs independentes por colaborador e competencia, preservados apos anexar outro mes ou editar o nome.
+- Leitura dos PDFs antigos por ID do colaborador, sem regravar o cadastro na anexacao.
+- Mensagem com mes e ano selecionados, com previa na confirmacao de envio.
+- Ultima competencia escolhida preservada no navegador.
+- Testes com pagamento simulado em 5 de novembro e envio de holerites de outubro e novembro.
+
 ## 2026-10-24
 
 - Animacoes de abertura, transicoes entre telas e janelas, respeitando movimento reduzido.

@@ -3,9 +3,10 @@ import fs from 'fs/promises';
 import multer from 'multer';
 import path from 'path';
 import pino from 'pino';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { sortEmployees } from './public/employee-order.js';
+import { validateMonth, formatPayslipMonth, buildPayslipCaption, validatePayslipMessage } from './public/payslip-month.js';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
@@ -68,13 +69,6 @@ function normalizePhone(phone) {
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getCurrentMonth() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
 }
 
 function normalizeTextKey(value) {
@@ -281,8 +275,15 @@ async function listPayslipFiles(month) {
     }));
 }
 
+function monthlyPayslipFileName(employee, month) {
+  const identity = createHash('sha256').update(String(employee.id)).digest('hex').slice(0, 32);
+  return `holerite-${identity}-${month}.pdf`;
+}
+
 function findPayslipForEmployee(employee, payslipFiles, month) {
   const monthFolder = path.resolve(payslipsFolderPath, month);
+  const monthlyFile = payslipFiles.find((file) => file.name === monthlyPayslipFileName(employee, month));
+  if (monthlyFile) return monthlyFile;
 
   if (employee.file) {
     const requestedFileName = employee.file.toLowerCase().endsWith('.pdf')
@@ -294,40 +295,20 @@ function findPayslipForEmployee(employee, payslipFiles, month) {
       return null;
     }
 
-    return payslipFiles.find((file) => path.resolve(file.path) === requestedPath) || null;
+    const explicitFile = payslipFiles.find((file) => path.resolve(file.path) === requestedPath);
+    if (explicitFile) return explicitFile;
   }
+
+  // Older uploads embedded the employee ID and month in the filename.
+  const legacySuffix = `-${employee.id.slice(0, 8)}-${month}.pdf`.toLowerCase();
+  const legacyFiles = payslipFiles.filter((file) => file.name.toLowerCase().endsWith(legacySuffix));
+  if (legacyFiles.length) return legacyFiles.length === 1 ? legacyFiles[0] : null;
 
   const phone = employee.phone;
   const nameKey = normalizeTextKey(employee.name);
-  const nameSlug = slugify(employee.name);
-
-  return payslipFiles.find((file) => {
-    if (phone && file.normalizedName.includes(phone)) {
-      return true;
-    }
-
-    if (!nameKey) {
-      return false;
-    }
-
-    return file.normalizedName.includes(nameKey) || file.slug.includes(nameSlug);
-  }) || null;
-}
-
-function buildPayslipCaption(template, employee, month) {
-  const fallbackTemplate = [
-    'Ola {nome}, tudo bem?',
-    '',
-    'Segue em anexo o seu holerite referente a {mes}.',
-    '',
-    'Atenciosamente,',
-    'RH Uai Telecom'
-  ].join('\n');
-
-  return String(template || fallbackTemplate)
-    .replace(/\{nome\}/g, employee.name || 'colaborador')
-    .replace(/\{numero\}/g, employee.phone)
-    .replace(/\{mes\}/g, month);
+  const matchingFiles = payslipFiles.filter((file) =>
+    (phone && file.normalizedName === phone) || (nameKey && file.normalizedName === nameKey));
+  return matchingFiles.length === 1 ? matchingFiles[0] : null;
 }
 
 function normalizeDelayConfig(body) {
@@ -342,16 +323,6 @@ function normalizeDelayConfig(body) {
     minSeconds: safeMin,
     maxSeconds: safeMax
   };
-}
-
-function validateMonth(value) {
-  const month = String(value || getCurrentMonth()).trim();
-
-  if (!/^\d{4}-\d{2}$/.test(month)) {
-    throw new Error('Use o mes no formato AAAA-MM. Exemplo: 2026-05');
-  }
-
-  return month;
 }
 
 function getRandomDelayMs(minMs, maxMs) {
@@ -371,7 +342,9 @@ async function buildPayslipPlan(month) {
 
     return {
       ...employee,
+      month,
       payslip_file: payslip?.name || '',
+      payslip_label: payslip ? `Holerite - ${formatPayslipMonth(month)}.pdf` : '',
       payslip_path: payslip?.path || ''
     };
   });
@@ -649,24 +622,18 @@ app.post('/api/hr/employees/:id/payslip', async (req, res) => {
     }
 
     const employee = employees[index];
-    const safeBaseName = slugify(employee.name) || employee.phone || employee.id;
-    const fileName = sanitizeFileName(`${safeBaseName}-${employee.id.slice(0, 8)}-${month}.pdf`);
+    const fileName = monthlyPayslipFileName(employee, month);
     const monthFolder = path.join(payslipsFolderPath, month);
     const filePath = path.join(monthFolder, fileName);
 
     await fs.mkdir(monthFolder, { recursive: true });
     await fs.writeFile(filePath, req.file.buffer);
 
-    employees[index] = {
-      ...employee,
-      file: fileName
-    };
-    await writeEmployeeEntries(employees);
-
     return res.json({
       status: 'success',
       message: 'Holerite anexado ao colaborador',
-      employee: employees[index],
+      employee,
+      month,
       file_name: fileName
     });
   } catch (error) {
@@ -721,6 +688,14 @@ app.get('/api/payslips-preview', async (req, res) => {
 app.post('/api/send-payslips', async (req, res) => {
   let acquired = false;
   try {
+    let month;
+    let messageTemplate;
+    try {
+      month = validateMonth(req.body.month);
+      messageTemplate = validatePayslipMessage(req.body.message);
+    } catch (error) {
+      return res.status(400).json({ status: 'error', message: error.message });
+    }
     if (!sock || state.status !== 'connected') {
       return res.status(503).json({
         status: 'error',
@@ -738,10 +713,7 @@ app.post('/api/send-payslips', async (req, res) => {
     payslipBatchInProgress = true;
     acquired = true;
 
-    const month = validateMonth(req.body.month);
-
     const { minMs, maxMs, minSeconds, maxSeconds } = normalizeDelayConfig(req.body);
-    const messageTemplate = String(req.body.message || '').trim();
     const plan = await buildPayslipPlan(month);
 
     if (!plan.length) {
@@ -787,7 +759,7 @@ app.post('/api/send-payslips', async (req, res) => {
         const response = await sock.sendMessage(jid, {
           document: { url: item.payslip_path },
           mimetype: 'application/pdf',
-          fileName: item.payslip_file,
+          fileName: `holerite-${slugify(item.name) || 'colaborador'}-${month}.pdf`,
           caption: buildPayslipCaption(messageTemplate, item, month)
         });
 
@@ -799,7 +771,7 @@ app.post('/api/send-payslips', async (req, res) => {
           message_id: response?.key?.id || null
         });
 
-        await delay(getRandomDelayMs(minMs, maxMs));
+        if (item !== plan.at(-1)) await delay(getRandomDelayMs(minMs, maxMs));
       } catch (error) {
         results.push({
           ...item,

@@ -1,13 +1,14 @@
 import { sortEmployees } from './employee-order.js';
+import { validateMonth, formatPayslipMonth, buildPayslipCaption, defaultPayslipMessage, validatePayslipMessage } from './payslip-month.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
   view: 'payslips', filter: 'all', rows: [], connected: false,
   loading: false, validList: false, sending: false, remoteSending: false,
   mutation: false, polling: false, requestId: 0, editingId: '',
-  upload: null, deleting: null, lastQr: '', qr: null
+  upload: null, deleting: null, lastQr: '', qr: null, review: null, listMonth: ''
 };
-const defaultMessage = 'Olá {nome}, tudo bem?\n\nSegue em anexo o seu holerite referente a {mes}.\n\nAtenciosamente,\nRH Uai Telecom';
+const defaultMessage = defaultPayslipMessage;
 const titles = { payslips: 'Holerites', employees: 'Cadastros', settings: 'Configurações' };
 let toastTimer;
 let viewAnimations = [];
@@ -96,13 +97,16 @@ function jsonRequest(method, data) {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
 }
 function monthValue() {
+  try {
+    const saved = localStorage.getItem('uai-rh-competence');
+    if (saved) return validateMonth(saved);
+  } catch { /* A selected month remains usable without browser storage. */ }
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 function monthLabel(month = $('payslip-month').value) {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return 'Competência inválida';
-  return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
-    .format(new Date(Number(month.slice(0, 4)), Number(month.slice(5)) - 1, 1));
+  try { return formatPayslipMonth(month); }
+  catch { return 'Competência inválida'; }
 }
 function isReady(employee) { return /^\d{12,15}$/.test(employee.phone) && Boolean(employee.payslip_file); }
 function normalized(value) {
@@ -212,7 +216,7 @@ function renderRows() {
     if (state.view !== 'employees') {
       const pdfCell = row.insertCell();
       const pdf = textElement('div', '', `pdf-cell ${employee.payslip_file ? '' : 'missing'}`);
-      const filename = employee.payslip_file || 'Sem holerite';
+      const filename = employee.payslip_label || employee.payslip_file || 'Sem holerite';
       pdf.title = filename;
       pdf.append(icon(employee.payslip_file ? 'file-text' : 'file-plus-2'), textElement('span', filename));
       pdfCell.append(pdf);
@@ -257,6 +261,7 @@ async function loadPreview() {
     const data = await api(`/api/payslips-preview?month=${encodeURIComponent(month)}`);
     if (requestId !== state.requestId) return false;
     state.rows = sortEmployees(data.results || []);
+    state.listMonth = month;
     state.validList = true;
     notice('list-alert');
     $('last-updated').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
@@ -373,6 +378,8 @@ function savePreferences(event) {
   event.preventDefault();
   const prefs = readPreferences();
   if (!validPreferences(prefs)) { notice('settings-feedback', 'Use intervalos inteiros de 5 a 3600 segundos. O máximo deve ser maior ou igual ao mínimo.'); return; }
+  try { validatePayslipMessage(prefs.message); }
+  catch (error) { notice('settings-feedback', error.message); return; }
   try {
     localStorage.setItem('uai-rh-preferences', JSON.stringify(prefs));
     notice('settings-feedback', 'Preferências salvas neste navegador.', 'success');
@@ -386,26 +393,41 @@ async function reviewSend() {
     notice('settings-feedback', 'Confira os intervalos e a mensagem antes de enviar.');
     return;
   }
+  try { validatePayslipMessage(readPreferences().message); }
+  catch (error) {
+    navigate('settings');
+    notice('settings-feedback', error.message);
+    return;
+  }
   if (!(await loadPreview()) || !state.connected || busy() || !state.rows.some(isReady)) return;
   const prefs = readPreferences();
-  $('review-month').textContent = monthLabel();
+  state.review = { month: state.listMonth, prefs: { ...prefs } };
+  $('review-month').textContent = monthLabel(state.review.month);
   $('review-count').textContent = state.rows.filter(isReady).length;
   $('review-pending').textContent = state.rows.filter((employee) => !isReady(employee)).length;
   $('review-delay').textContent = `${prefs.min} a ${prefs.max} segundos`;
+  const recipient = state.rows.find(isReady);
+  $('review-recipient').textContent = `Mensagem para ${recipient.name}`;
+  $('review-message').textContent = buildPayslipCaption(prefs.message, recipient, state.review.month);
   notice('review-feedback');
   openDialog('send-dialog');
 }
 async function sendPayslips() {
-  if (busy() || state.mutation || !state.connected || !state.validList || !state.rows.some(isReady)) return;
-  const prefs = readPreferences();
+  if (busy() || state.mutation || !state.connected || !state.validList || !state.rows.some(isReady) || !state.review) return;
+  const { month, prefs } = state.review;
+  if (month !== $('payslip-month').value || month !== state.listMonth) {
+    notice('review-feedback', 'A competência mudou. Feche esta janela e revise o envio novamente.');
+    return;
+  }
   if (!validPreferences(prefs)) return;
   state.sending = true;
+  syncControls();
   await closeDialog('send-dialog');
   notice('send-feedback', 'Enviando holerites. Aguarde a conclusão para iniciar outro envio.', 'info');
   renderRows();
   try {
     const data = await api('/api/send-payslips', jsonRequest('POST', {
-      month: $('payslip-month').value, min_delay_seconds: prefs.min, max_delay_seconds: prefs.max, message: prefs.message
+      month, min_delay_seconds: prefs.min, max_delay_seconds: prefs.max, message: prefs.message
     }));
     let result = data.message || 'Envio finalizado.';
     if (data.report_path) result += ` Relatório: ${data.report_path}`;
@@ -415,6 +437,7 @@ async function sendPayslips() {
     notice('send-feedback', `${error.message} Confira o resultado antes de repetir o envio.`);
   } finally {
     state.sending = false;
+    state.review = null;
     await checkConnection();
     renderRows();
   }
@@ -494,7 +517,13 @@ $('payslip-file').addEventListener('change', () => { $('file-name').textContent 
 $('confirm-delete').addEventListener('click', deleteEmployee);
 $('employee-search').addEventListener('input', renderRows);
 $('refresh').addEventListener('click', loadPreview);
-$('payslip-month').addEventListener('change', () => { notice('send-feedback'); loadPreview(); });
+$('payslip-month').addEventListener('change', () => {
+  state.review = null;
+  try { localStorage.setItem('uai-rh-competence', validateMonth($('payslip-month').value)); }
+  catch { /* Validation is also performed by loadPreview. */ }
+  notice('send-feedback');
+  loadPreview();
+});
 $('settings-form').addEventListener('submit', savePreferences);
 $('edit-settings').addEventListener('click', () => navigate('settings'));
 $('connection-shortcut').addEventListener('click', () => navigate('settings'));

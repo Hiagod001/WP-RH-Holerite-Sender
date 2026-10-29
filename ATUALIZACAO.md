@@ -10,6 +10,14 @@ Para uma instalacao existente, envie apenas `WP-RH-Holerite-Sender-ATUALIZACAO.z
 
 Nao e necessario cadastrar os colaboradores novamente nem executar npm install para esta atualizacao.
 
+## Competencia dos holerites
+
+Esta atualizacao separa os anexos por colaborador e competencia. Selecione `2026-10` no calendario para anexar e enviar os holerites de outubro, mesmo quando o pagamento acontecer em novembro. A mensagem preenche `{mes}` como `outubro de 2026`, e o PDF vem da pasta `Holerites/2026-10/`.
+
+Anexar novembro nao substitui o holerite de outubro. Os PDFs das versoes anteriores continuam sendo lidos sem migrar ou regravar o cadastro. O painel lembra a ultima competencia escolhida no mesmo navegador.
+
+Na mensagem personalizada, mantenha `{mes}` ou `{competencia}` para o mes ser preenchido automaticamente. Antes de confirmar o envio, confira a competencia e a previa da mensagem na janela de revisao.
+
 ## O que fica preservado
 
 - `Planilha/colaboradores.csv`: cadastro existente de colaboradores.

@@ -40,6 +40,14 @@ Painel web para o RH cadastrar colaboradores, anexar holerites em PDF e enviar d
 
 </details>
 
+## Competência e data de pagamento
+
+O calendário representa a **competência do holerite**. Selecione outubro para anexar e enviar os documentos de outubro, mesmo que o pagamento seja feito em 5 de novembro. A variável `{mes}` da mensagem será preenchida como `outubro de 2026`.
+
+Os anexos de outubro e novembro são independentes. Anexar um novo mês não remove o PDF do mês anterior. O painel lembra a última competência selecionada e mostra a mensagem preenchida na revisão do envio. Os arquivos das versões anteriores continuam sendo lidos sem recadastrar os colaboradores.
+
+Em mensagens personalizadas, mantenha `{mes}` ou `{competencia}` para que o mês seja preenchido pelo calendário.
+
 ## Tecnologias
 
 | Camada | Uso |

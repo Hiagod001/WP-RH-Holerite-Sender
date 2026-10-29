@@ -15,6 +15,7 @@ test('API keeps new and edited registrations alphabetical without changing IDs o
   await fs.mkdir(path.join(fixture, 'Planilha'));
   await fs.copyFile(path.join(root, 'server.js'), path.join(fixture, 'server.js'));
   await fs.copyFile(path.join(root, 'public', 'employee-order.js'), path.join(fixture, 'public', 'employee-order.js'));
+  await fs.copyFile(path.join(root, 'public', 'payslip-month.js'), path.join(fixture, 'public', 'payslip-month.js'));
   await fs.writeFile(path.join(fixture, 'package.json'), JSON.stringify({ type: 'module' }));
   await fs.symlink(path.join(root, 'node_modules'), path.join(fixture, 'node_modules'), 'junction');
   await fs.writeFile(path.join(fixture, 'Planilha', 'colaboradores.csv'),
